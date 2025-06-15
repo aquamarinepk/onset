@@ -1,5 +1,5 @@
 # Variables
-APP_NAME = todo
+APP_NAME = onset
 BUILD_DIR = build
 SRC_DIR = .
 MAIN_SRC = $(SRC_DIR)/main.go

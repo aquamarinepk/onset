@@ -8,22 +8,32 @@ if [ -z "$1" ]; then
 fi
 
 NEW_MODULE="$1"
-TEMPLATE_REPO="git@github.com:aquamarinepk/onset.git"
+TEMPLATE_REPO="https://github.com/aquamarinepk/onset.git"
+ORIGINAL_DIR="$(pwd)"
 
 WORKDIR=$(mktemp -d)
-echo "Cloning template..."
-git clone "$TEMPLATE_REPO" "$WORKDIR"
+git clone --depth 1 "$TEMPLATE_REPO" "$WORKDIR"
 cd "$WORKDIR"
 
 ORIGINAL_MODULE=$(grep "^module " go.mod | awk '{print $2}')
-echo "Updating module from $ORIGINAL_MODULE to $NEW_MODULE"
-
 go mod edit -module "$NEW_MODULE"
 find . -type f -name "*.go" -exec sed -i "s|$ORIGINAL_MODULE|$NEW_MODULE|g" {} +
+
+PROJECT_NAME_RAW=$(basename "$NEW_MODULE")
+PROJECT_NAME_UPPER=$(echo "$PROJECT_NAME_RAW" | tr '[:lower:]' '[:upper:]')
+
+find . -type f ! -path "./.git/*" -exec sed -i \
+  -e "s/onset/$PROJECT_NAME_RAW/g" \
+  -e "s/ONSET/$PROJECT_NAME_UPPER/g" \
+  {} +
+
+find . -maxdepth 1 \( -name "Makefile" -o -name "makefile" \) -exec sed -i "s|APP_NAME[[:space:]]*=[[:space:]]*.*|APP_NAME = $PROJECT_NAME_RAW|g" {} +
+
 rm -rf .git
 
-TARGET_DIR="../$(basename "$NEW_MODULE")"
+TARGET_DIR="$ORIGINAL_DIR/$PROJECT_NAME_RAW"
 cp -R . "$TARGET_DIR"
 
-echo "Done. Project created at $TARGET_DIR"
+cd "$ORIGINAL_DIR"
+rm -rf "$WORKDIR"
 
